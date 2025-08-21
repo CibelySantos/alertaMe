@@ -8,6 +8,7 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  ImageBackground,
 } from 'react-native'
 import { supabase } from '../../supabaseClient'
 
@@ -23,57 +24,75 @@ export default function LoginScreen({ navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ImageBackground
+      source={require('../img/alertameBackground.png')} // substitua pelo caminho correto da sua imagem
+      style={styles.background}
+      resizeMode="cover"
     >
-      <StatusBar barStyle="dark-content" />
-      <Text style={styles.title}>Login 🔐</Text>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.container}>
+          <Text style={styles.title}>Login 🔐</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#666"
-        onChangeText={setEmail}
-        value={email}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#666"
+            onChangeText={setEmail}
+            value={email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        placeholderTextColor="#666"
-        secureTextEntry
-        onChangeText={setPassword}
-        value={password}
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            placeholderTextColor="#666"
+            secureTextEntry
+            onChangeText={setPassword}
+            value={password}
+          />
 
-      {error && <Text style={styles.error}>{error}</Text>}
+          {error && <Text style={styles.error}>{error}</Text>}
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
+            <Text style={styles.buttonText}>Entrar</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-        <Text style={styles.link}>Criar conta</Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <Text style={styles.link}>Criar conta</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  background: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
+  },
+  container: {
+    width: '85%',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // fundo branco semi-transparente para legibilidade
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
     color: '#121212',
-    marginBottom: 40,
+    marginBottom: 30,
     fontWeight: 'bold',
   },
   input: {
@@ -90,7 +109,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#00bfa5',
+    backgroundColor: '#ff5252',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -103,7 +122,7 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 20,
-    color: '#00bfa5',
+    color: '#ff5252',
     fontSize: 14,
     textDecorationLine: 'underline',
   },
