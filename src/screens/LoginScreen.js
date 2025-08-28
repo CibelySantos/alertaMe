@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ImageBackground,
+  Image,
 } from 'react-native'
 import { supabase } from '../../supabaseClient'
 
@@ -56,6 +57,11 @@ export default function LoginScreen({ navigation }) {
         >
           <StatusBar barStyle="light-content" />
           <View style={styles.header}>
+            <Image
+              source={require('../img/logo-alertame-removebg-preview.png')} // Substitua pelo caminho da sua imagem
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
             <Text style={styles.subtitle}>Entre na sua conta</Text>
           </View>
@@ -109,12 +115,30 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
   keyboardView: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
   header: { alignItems: 'center', marginBottom: 40 },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
   welcomeText: { fontSize: 32, fontWeight: '800', color: '#fff' },
   subtitle: { fontSize: 16, color: '#ccc' },
   card: { backgroundColor: '#fff', borderRadius: 24, padding: 32 },
-  input: { height: 56, borderRadius: 16, paddingHorizontal: 20, marginBottom: 16, backgroundColor: '#F9FAFB' },
+  input: {
+    height: 56,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+  },
   error: { color: '#DC2626', textAlign: 'center', marginBottom: 12 },
-  loginButton: { height: 56, backgroundColor: '#EF4444', borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  loginButton: {
+    height: 56,
+    backgroundColor: '#EF4444',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   loginButtonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
   signupContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
   signupText: { fontSize: 15, color: '#6B7280' },
