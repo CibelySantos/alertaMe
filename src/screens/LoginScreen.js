@@ -121,8 +121,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignSelf: 'center',
   },
-  welcomeText: { fontSize: 32, fontWeight: '800', color: '#fff' },
-  subtitle: { fontSize: 16, color: '#ccc' },
+  welcomeText: { fontSize: 32, fontWeight: '800', color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 4,},
+  subtitle: { fontSize: 16, color: '#ccc', textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 4, },
   card: { backgroundColor: '#fff', borderRadius: 24, padding: 32 },
   input: {
     height: 56,
