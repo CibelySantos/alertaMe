@@ -1,272 +1,391 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-    View, Text, StyleSheet, TouchableOpacity, PermissionsAndroid, Platform, 
-    Modal, TextInput, ScrollView, Alert 
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  StatusBar,
 } from 'react-native';
-import Voice from 'react-native-voice';
-import Geolocation from 'react-native-geolocation-service';
-import BackgroundActions from 'react-native-background-actions';
-import Icon from 'react-native-vector-icons/FontAwesome'; 
-import { FontAwesome5, Ionicons } from '@expo/vector-icons'; 
+// Certifique-se de instalar: npm install react-native-vector-icons
+import Feather from 'react-native-vector-icons/Feather';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// MOCK SERVICES
-const supabase = { 
-    from: () => ({ select: () => ({ eq: () => ({ data: [
-        { id: 1, name: "Tereza de Jesus", relation: "Mãe", phone: "+5511988887777", status: 'ativo' },
-        { id: 2, name: "Mariana Santos", relation: "Amiga", phone: "+5511966665555", status: 'ativo' },
-        { id: 3, name: "Cleiton de Jesus", relation: "Irmão", phone: "+5511944443333", status: 'ativo' },
-    ], error: null }) }) }), 
-    channel: () => ({ on: () => ({ subscribe: () => {} }) }), 
-    removeChannel: () => {}, 
+// --- Constante de Cor (para fácil manutenção) ---
+const PRIMARY_RED = '#f91b19'; // Novo Vermelho!
+
+// --- Dados Mockados ---
+const emergencyContacts = [
+  { name: 'Tereza de Jesus', role: '(Mãe)', phone: '+55 11 4002-8922', isActive: true },
+  { name: 'Mariana Santos', role: '(Melhor amiga)', phone: '+55 11 4002-8922', isActive: true },
+  { name: 'Cleiton de Jesus', role: '(Irmão)', phone: '+55 11 4002-8922', isActive: true },
+];
+
+// --- Componentes Reutilizáveis ---
+
+// Componente para o rótulo de status ATIVO/INATIVO
+const StatusBadge = ({ active, text = null }) => (
+  <View style={[styles.badge, active ? styles.badgeActive : styles.badgeInactive]}>
+    <Text style={styles.badgeText}>{text || (active ? 'ATIVO' : 'INATIVO')}</Text>
+  </View>
+);
+
+// Componente para um bloco de seção (Monitoramento, Contatos, Localização)
+const SectionContainer = ({ title, iconName, children, iconLibrary = Feather }) => {
+  const Icon = iconLibrary;
+  return (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeader}>
+        {Icon && <Icon name={iconName} size={20} color={PRIMARY_RED} style={styles.sectionIcon} />}
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <View style={styles.sectionContent}>{children}</View>
+    </View>
+  );
 };
 
-const sendSMS = async (number, message) => { console.log(`[SMS MOCK] Enviando para ${number}: ${message}`); };
-const listenForKeyword = () => new Promise(resolve => setTimeout(() => resolve(['Nada falado']), 3000)); 
+// Componente principal que representa a tela
+const SafetyScreen = () => {
+  // Estados para simular a funcionalidade
+  const [isVoiceMonitoringActive, setIsVoiceMonitoringActive] = useState(false);
+  const [emergencyKeyword, setEmergencyKeyword] = useState('Socorro');
+  const [isEditingKeyword, setIsEditingKeyword] = useState(false);
+  const [isLocationActive] = useState(true); // Simula que a permissão de localização está ativa
 
-const sleep = (time) => new Promise(resolve => setTimeout(resolve, time));
-const getCurrentLocation = () => new Promise((resolve, reject) => {
-    Geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
-});
+  // Função para alternar o monitoramento de voz
+  const toggleVoiceMonitoring = () => {
+    setIsVoiceMonitoringActive(prev => !prev);
+  };
 
-async function sendEmergencyMessage(location, contacts) {
-    const mapLink = `http://maps.google.com/?q=${location.coords.latitude},${location.coords.longitude}`;
-    const message = `Alerta de emergência! Minha localização atual é: ${mapLink}`;
-    for (const number of contacts.map(c => c.phone)) {
-        await sendSMS(number, message);
-    }
-}
+  // Funções para a palavra-chave
+  const handleEditKeyword = () => {
+    setIsEditingKeyword(true);
+  };
+  const handleSaveKeyword = () => {
+    // Aqui você adicionaria a lógica para salvar no backend/storage
+    setIsEditingKeyword(false);
+  };
 
-const task = async ({ keyword, contacts }) => {
-    while (BackgroundActions.isRunning()) {
-        try {
-            const speechResults = await listenForKeyword(); 
-            if (speechResults.some(r => r.toLowerCase().includes(keyword.toLowerCase()))) {
-                const location = await getCurrentLocation();
-                await sendEmergencyMessage(location, contacts);
-                BackgroundActions.stop(); 
-                break; 
-            }
-        } catch (e) {
-            console.error("Erro monitoramento voz:", e);
-        }
-        await sleep(5000); 
-    }
+  // --- Renderização da Tela ---
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Cabeçalho */}
+      <View style={styles.header}>
+        <Feather name="alert-triangle" size={24} color={PRIMARY_RED} />
+        <TouchableOpacity style={styles.headerButtonActive}>
+          <Feather name="home" size={20} color="#FFFFFF" />
+          <Text style={styles.headerButtonTextActive}>Página Inicial</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton}>
+          <Feather name="map-pin" size={20} color="#000" />
+          <Text style={styles.headerButtonText}>Lugares</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton}>
+          <Feather name="user" size={20} color="#000" />
+          <Text style={styles.headerButtonText}>Perfil</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.headerButton}>
+          <Feather name="log-out" size={20} color="#000" />
+          <Text style={styles.headerButtonText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.logo}>
+        <Text style={{ fontWeight: 'bold' }}>Alerta</Text>
+        <Text style={{ color: PRIMARY_RED, fontWeight: 'bold' }}>Me</Text>
+      </Text>
+      <Text style={styles.subtitle}>Sua segurança em primeiro lugar.</Text>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* --- 1. Monitoramento de voz --- */}
+        <SectionContainer
+          title="Monitoramento de voz"
+          iconName="shield"
+          iconLibrary={MaterialCommunityIcons}
+        >
+          <View style={styles.voiceMonitorRow}>
+            <StatusBadge active={isVoiceMonitoringActive} />
+            <TouchableOpacity
+              style={[
+                styles.startButton,
+                isVoiceMonitoringActive ? styles.stopButton : styles.startButton,
+              ]}
+              onPress={toggleVoiceMonitoring}
+            >
+              <MaterialCommunityIcons name="microphone" size={20} color="#FFFFFF" />
+              <Text style={styles.startButtonText}>
+                {isVoiceMonitoringActive ? 'Parar monitoramento' : 'Iniciar monitoramento'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.keywordLabel}>Palavra-chave de emergência</Text>
+          {isEditingKeyword ? (
+            <TextInput
+              style={styles.keywordInput}
+              value={emergencyKeyword}
+              onChangeText={setEmergencyKeyword}
+              autoFocus
+              onSubmitEditing={handleSaveKeyword}
+            />
+          ) : (
+            <View style={styles.keywordDisplay}>
+              <Text>{emergencyKeyword}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={isEditingKeyword ? handleSaveKeyword : handleEditKeyword}
+          >
+            <Text style={styles.editButtonText}>
+              {isEditingKeyword ? 'Salvar palavra-chave' : 'Editar palavra-chave'}
+            </Text>
+          </TouchableOpacity>
+        </SectionContainer>
+        {/* --- 2. Contatos de Emergência --- */}
+        <SectionContainer
+          title="Contatos de Emergência"
+          iconName="account-group"
+          iconLibrary={MaterialCommunityIcons}
+        >
+          {emergencyContacts.map((contact, index) => (
+            <View key={index} style={styles.contactRow}>
+              <View>
+                <Text style={styles.contactName}>
+                  {contact.name} <Text style={styles.contactRole}>{contact.role}</Text>
+                </Text>
+                <Text style={styles.contactPhone}>{contact.phone}</Text>
+              </View>
+              <StatusBadge active={contact.isActive} />
+            </View>
+          ))}
+        </SectionContainer>
+
+        {/* --- 3. Localização --- */}
+        <SectionContainer
+          title="Localização"
+          iconName="map-marker"
+          iconLibrary={MaterialCommunityIcons}
+        >
+          <View style={styles.locationRow}>
+            <View>
+              <Text style={styles.locationLabel}>Status de localização</Text>
+              <Text style={styles.locationStatusText}>
+                Necessário para envio de coordenadas em emergências
+              </Text>
+            </View>
+            <StatusBadge active={isLocationActive} text="ATIVO" />
+          </View>
+        </SectionContainer>
+      </ScrollView>
+    </View>
+  );
 };
 
-const options = {
-    taskName: 'VoiceMonitoring',
-    taskTitle: 'AlertaMe - Monitoramento de Voz',
-    taskDesc: 'Monitorando palavra-chave de emergência.',
-    taskIcon: { name: 'ic_launcher', type: 'mipmap' },
-    linkingURI: 'your-app://', 
-    parameters: { delay: 1000 },
-};
-
-export default function MonitorarScreen() {
-    const [isVoiceMonitoringActive, setIsVoiceMonitoringActive] = useState(false);
-    const [emergencyKeyword, setEmergencyKeyword] = useState('Socorro');
-    const [keywordInput, setKeywordInput] = useState('Socorro'); 
-    const [showKeywordModal, setShowKeywordModal] = useState(false);
-    const [contacts, setContacts] = useState([]);
-    const [isLocationActive, setIsLocationActive] = useState(false);
-    const userId = 'seu-id-de-usuario-aqui'; 
-
-    const keywordRef = useRef(emergencyKeyword);
-    const contactsRef = useRef(contacts);
-    
-    useEffect(() => { keywordRef.current = emergencyKeyword; }, [emergencyKeyword]);
-    useEffect(() => { contactsRef.current = contacts; }, [contacts]);
-
-    async function requestPermissions() {
-        if (Platform.OS === 'android') {
-            const granted = await PermissionsAndroid.requestMultiple([
-                PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            ]);
-            const audioGranted = granted['android.permission.RECORD_AUDIO'] === 'granted';
-            const locationGranted = granted['android.permission.ACCESS_FINE_LOCATION'] === 'granted';
-            if (!audioGranted || !locationGranted) {
-                Alert.alert("Permissão Necessária", "Áudio e Localização são necessários.");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    const startMonitoring = async () => {
-        if (isVoiceMonitoringActive) return;
-        const hasPermissions = await requestPermissions();
-        if (hasPermissions) {
-            try {
-                await BackgroundActions.start(task, {
-                    ...options,
-                    parameters: { keyword: keywordRef.current, contacts: contactsRef.current }
-                });
-                setIsVoiceMonitoringActive(true);
-                Alert.alert("Monitoramento Ativo", `Monitorando palavra: ${keywordRef.current}`);
-            } catch (e) {
-                console.error('Erro iniciar serviço background:', e);
-                Alert.alert("Erro", "Não foi possível iniciar monitoramento.");
-            }
-        }
-    };
-
-    const stopMonitoring = async () => {
-        await BackgroundActions.stop();
-        setIsVoiceMonitoringActive(false);
-        Alert.alert("Monitoramento Parado", "O monitoramento de voz foi desativado.");
-    };
-
-    const fetchEmergencyContacts = async (id) => {
-        const { data, error } = await supabase.from('emergency_contacts').select('*').eq('user_id', id);
-        if (error) console.error('Erro ao buscar contatos:', error);
-        else setContacts(data);
-    };
-
-    useEffect(() => {
-        fetchEmergencyContacts(userId);
-        const watchId = Geolocation.watchPosition(
-            () => setIsLocationActive(true),
-            (error) => { console.log("Erro localização:", error.code, error.message); setIsLocationActive(false); },
-            { enableHighAccuracy: true, distanceFilter: 10 }
-        );
-        return () => Geolocation.clearWatch(watchId);
-    }, [userId]);
-
-    useEffect(() => {
-        const channel = supabase
-            .channel('emergency_contacts')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'emergency_contacts', filter: `user_id=eq.${userId}` }, () => {
-                fetchEmergencyContacts(userId);
-            })
-            .subscribe();
-        return () => supabase.removeChannel(channel);
-    }, [userId]);
-
-    const handleSaveKeyword = () => {
-        if (!keywordInput.trim()) { Alert.alert("Erro", "Palavra-chave não pode ser vazia."); return; }
-        setEmergencyKeyword(keywordInput.trim());
-        setShowKeywordModal(false);
-    };
-
-    return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <View style={styles.topBar}>
-                    <Ionicons name="alert-circle" size={24} color="#E74C3C" />
-                    <View style={styles.navLinks}>
-                        <TouchableOpacity style={styles.navItemActive}><Icon name="home" size={14} color="#FFF" /></TouchableOpacity>
-                        <TouchableOpacity style={styles.navItem}><Icon name="map-marker-alt" size={14} color="#555" /></TouchableOpacity>
-                        <TouchableOpacity style={styles.navItem}><Icon name="user" size={14} color="#555" /></TouchableOpacity>
-                    </View>
-                    <TouchableOpacity><Icon name="sign-out" size={16} color="#555" /></TouchableOpacity>
-                </View>
-                <View style={styles.logoArea}>
-                    <Text style={styles.logoText}>Alerta<Text style={styles.logoMe}>Me</Text></Text>
-                    <Text style={styles.subtitle}>Sua segurança em primeiro lugar.</Text>
-                </View>
-            </View>
-
-            <View style={[styles.card, styles.cardRedBorder]}>
-                <Text style={styles.cardTitle}><FontAwesome5 name="shield-alt" size={18} color="#E74C3C" /> Monitoramento de voz</Text>
-                <View style={styles.monitoramentoStatusRow}>
-                    <Text style={[styles.statusTag, isVoiceMonitoringActive ? styles.statusActive : styles.statusInactive]}>
-                        {isVoiceMonitoringActive ? 'ATIVO' : 'INATIVO'}
-                    </Text>
-                    <TouchableOpacity style={[styles.btnPrimary]} onPress={isVoiceMonitoringActive ? stopMonitoring : startMonitoring}>
-                        <FontAwesome5 name="microphone" size={16} color="#FFF" />
-                        <Text style={styles.btnPrimaryText}>{isVoiceMonitoringActive ? 'Parar monitoramento' : 'Iniciar monitoramento'}</Text>
-                    </TouchableOpacity>
-                </View>
-                <Text style={styles.label}>Palavra-chave de emergência</Text>
-                <TextInput style={styles.textInput} value={emergencyKeyword} editable={false} />
-                <TouchableOpacity style={styles.btnSecondary} onPress={() => { setKeywordInput(emergencyKeyword); setShowKeywordModal(true); }}>
-                    <Text style={styles.btnSecondaryText}>Editar palavra-chave</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View style={[styles.card, styles.cardRedBorder]}>
-                <Text style={styles.cardTitle}><FontAwesome5 name="users" size={16} color="#E74C3C" /> Contatos de Emergência</Text>
-                {contacts.map((contact, index) => (
-                    <View key={contact.id || index} style={[styles.contactItem, index === contacts.length - 1 && { borderBottomWidth: 0 }]}>
-                        <View>
-                            <Text style={styles.contactName}>{contact.name} ({contact.relation})</Text>
-                            <Text style={styles.contactPhone}>{contact.phone}</Text>
-                        </View>
-                        <Text style={[styles.statusTag, styles.statusActive]}>ATIVO</Text>
-                    </View>
-                ))}
-            </View>
-
-            <View style={[styles.card, styles.cardRedBorder]}>
-                <Text style={styles.cardTitle}><FontAwesome5 name="map-marker-alt" size={16} color="#E74C3C" /> Localização</Text>
-                <View style={styles.localizacaoRow}>
-                    <Text style={styles.localizacaoLabel}>Status de localização</Text>
-                    <Text style={[styles.statusTag, isLocationActive ? styles.statusActive : styles.statusInactive]}>
-                        {isLocationActive ? 'ATIVO' : 'INATIVO'}
-                    </Text>
-                </View>
-                <Text style={styles.localizacaoNote}>Necessário para envio de coordenadas em emergências</Text>
-            </View>
-
-            <Modal visible={showKeywordModal} animationType="fade" transparent={true} onRequestClose={() => setShowKeywordModal(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Editar Palavra-chave</Text>
-                        <TextInput
-                            style={styles.modalTextInput}
-                            onChangeText={setKeywordInput}
-                            value={keywordInput}
-                            placeholder="Digite a nova palavra-chave"
-                            placeholderTextColor="#999"
-                            autoCapitalize="words"
-                        />
-                        <TouchableOpacity style={[styles.modalButton, styles.btnPrimary]} onPress={handleSaveKeyword}>
-                            <Text style={styles.btnPrimaryText}>Salvar Palavra-chave</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.modalButton, styles.btnSecondary, { marginTop: 10 }]} onPress={() => setShowKeywordModal(false)}>
-                            <Text style={styles.btnSecondaryText}>Cancelar</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
-        </ScrollView>
-    );
-}
-
+// --- Estilos ---
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F4F4F9' },
-    header: { backgroundColor: '#FFF', paddingTop: 40, paddingHorizontal: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-    topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-    navLinks: { flexDirection: 'row', alignItems: 'center' },
-    navItem: { padding: 8, borderRadius: 4, marginHorizontal: 5 },
-    navItemActive: { padding: 8, borderRadius: 4, marginHorizontal: 5, backgroundColor: '#E74C3C' },
-    logoArea: { alignItems: 'center', marginTop: 10 },
-    logoText: { fontSize: 32, fontWeight: '700', color: '#333' },
-    logoMe: { color: '#E74C3C' },
-    subtitle: { fontSize: 14, color: '#555', marginTop: 5 },
-    card: { backgroundColor: '#FFF', marginHorizontal: 15, marginTop: 20, padding: 15, borderRadius: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-    cardRedBorder: { borderTopWidth: 5, borderTopColor: '#E74C3C' },
-    cardTitle: { fontSize: 18, fontWeight: '500', color: '#333', marginBottom: 15 },
-    monitoramentoStatusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    label: { fontSize: 14, color: '#555', marginTop: 15, marginBottom: 5 },
-    textInput: { backgroundColor: '#F8F8F8', padding: 10, borderRadius: 5, borderWidth: 1, borderColor: '#CCC', color: '#333', fontWeight: '500' },
-    btnPrimary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E74C3C', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 5, flex: 1, marginLeft: 10 },
-    btnPrimaryText: { color: '#FFF', fontWeight: 'bold', fontSize: 16, marginLeft: 8 },
-    btnSecondary: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E74C3C', paddingVertical: 10, borderRadius: 5, marginTop: 15, flex: 1, marginLeft: 0 },
-    btnSecondaryText: { color: '#E74C3C', fontWeight: 'bold', textAlign: 'center', fontSize: 16 },
-    statusTag: { paddingVertical: 5, paddingHorizontal: 8, borderRadius: 4, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', textAlign: 'center', width: 80, borderWidth: 1 },
-    statusActive: { backgroundColor: '#ECF0F1', color: '#E74C3C', borderColor: '#E74C3C' },
-    statusInactive: { backgroundColor: '#EEE', color: '#999', borderColor: '#CCC' },
-    contactItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-    contactName: { fontWeight: '500', color: '#333', fontSize: 15 },
-    contactPhone: { fontSize: 14, color: '#555', marginTop: 2 },
-    localizacaoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-    localizacaoLabel: { fontWeight: '500', color: '#333' },
-    localizacaoNote: { fontSize: 13, color: '#555' },
-    modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
-    modalContent: { backgroundColor: '#fff', padding: 20, borderRadius: 10, width: '85%', alignItems: 'stretch' },
-    modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, textAlign: 'center', color: '#333' },
-    modalTextInput: { padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 20, fontSize: 16, color: '#333', backgroundColor: '#f9f9f9' },
-    modalButton: { width: '100%' }
+  screen: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  container: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+  },
+
+  // Estilos do Cabeçalho
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  headerButton: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  headerButtonActive: {
+    ...this.headerButton,
+    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  headerButtonText: {
+    fontSize: 10,
+    color: '#000',
+  },
+  headerButtonTextActive: {
+    ...this.headerButtonText,
+    color: '#FFFFFF',
+  },
+  logo: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+  },
+
+  // Estilos das Seções (Blocos) - Sem o traço vermelho lateral
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+    elevation: 3, // Sombra para Android
+    shadowColor: '#000', // Sombra para iOS
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    borderWidth: 1, 
+    borderColor: '#E0E0E0', 
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionIcon: {
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: PRIMARY_RED, // COR ATUALIZADA
+  },
+  sectionContent: {
+    paddingTop: 5,
+  },
+
+  // Estilos do Badge de Status (ATIVO/INATIVO)
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  badgeActive: {
+    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+  },
+  badgeInactive: {
+    backgroundColor: '#999',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
+  // Estilos do Monitoramento de Voz
+  voiceMonitorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+  },
+  stopButton: {
+    backgroundColor: '#555', // Cor diferente para o estado "Parar" (se ativado)
+  },
+  startButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    marginLeft: 5,
+  },
+  keywordLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  keywordDisplay: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#CCC',
+  },
+  keywordInput: {
+    backgroundColor: '#F0F0F0',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: PRIMARY_RED, // COR ATUALIZADA
+    color: '#000',
+  },
+  editButton: {
+    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+
+  // Estilos dos Contatos de Emergência
+  contactRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  contactName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  contactRole: {
+    fontSize: 14,
+    fontWeight: 'normal',
+    color: '#666',
+  },
+  contactPhone: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  // Estilos da Localização
+  locationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  locationLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 3,
+    color: '#333',
+  },
+  locationStatusText: {
+    fontSize: 12,
+    color: '#666',
+    width: 200, 
+  },
 });
+
+export default SafetyScreen;
