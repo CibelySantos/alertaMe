@@ -1,4 +1,4 @@
-// Cibely, Júlia Fortunato, Luiz Gustavo (Manutenção de Autoria)
+// Cibely, Júlia Fortunato, Luiz Gustavo e Gabriel Moreira (Manutenção de Autoria)
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 // Importação de Ícones
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons'; // Adicionado MaterialCommunityIcons
 // Para o Dropdown (Tipo de Relato) - É necessário instalar: expo install @react-native-picker/picker
 import { Picker } from '@react-native-picker/picker';
 
@@ -30,6 +30,10 @@ const AsyncStorage = {
     },
     setItem: async (key, value) => console.log('Relatórios salvos/atualizados:', value),
 };
+
+// **MOCK:** Funções do Supabase para o Header funcionar
+const supabase = { auth: { signOut: async () => ({ error: null }) } }; 
+
 const s3 = { upload: (params, callback) => { /* Mock S3 upload */ callback(null, { Location: 'https://mock-image-url.com/image.jpg' }); } };
 const bucket = 'mock-bucket-name';
 const REPORT_TYPES = [
@@ -38,24 +42,68 @@ const REPORT_TYPES = [
     { label: 'Lugar Seguro', value: 'lugar_seguro' },
 ];
 
-// --- PALETA DE CORES (Movida para o topo para fácil acesso) ---
+// --- PALETA DE CORES ---
 const COLORS = {
-  primaryRed: '#FF0000',
-  primaryRedDark: '#CC0000',
-  lightGray: '#F5F5F5',
-  darkGrayText: '#333333',
-  mediumGrayText: '#555555',
-  blackText: '#000000',
-  white: '#FFFFFF',
-  headerBorder: '#E0E0E0',
-  inputBorder: '#E0E0E0',
-  shadowColor: '#000000',
-  safeColor: '#1E90FF', // Exemplo de cor para 'Lugar Seguro'
+    primaryRed: '#FF0000',
+    primaryRedDark: '#CC0000',
+    lightGray: '#F5F5F5',
+    darkGrayText: '#333333',
+    mediumGrayText: '#555555',
+    blackText: '#000000',
+    white: '#FFFFFF',
+    headerBorder: '#E0E0E0',
+    inputBorder: '#E0E0E0',
+    shadowColor: '#000000',
+    safeColor: '#1E90FF', // Exemplo de cor para 'Lugar Seguro'
 };
 
-// --- COMPONENTES AUXILIARES ---
+// ----------------------------------------------------------------------
+// --- NOVO COMPONENTE: NavigationHeader (Copiado e Adaptado) ---
+// ----------------------------------------------------------------------
 
-// Componente do Card de Relatório (adaptado para usar seus dados de postagem)
+// Componente do cabeçalho de navegação. 
+// ATENÇÃO: A prop 'activeScreen' é usada para destacar o item correto.
+const NavigationHeader = ({ navigation, loading, handleLogout }) => (
+    <View style={navHeaderStyles.navHeader}>
+        <View style={navHeaderStyles.navLinksLeft}>
+            {/* PÁGINA INICIAL */}
+            <TouchableOpacity 
+                style={navHeaderStyles.navItem} 
+                onPress={() => navigation.navigate('Home')}
+            >
+                <Ionicons name="home-outline" size={18} color={COLORS.mediumGrayText} />
+                <Text style={navHeaderStyles.navText}>Página Inicial</Text>
+            </TouchableOpacity>
+            
+            {/* LUGARES (Selecionado) */}
+            <TouchableOpacity 
+                style={[navHeaderStyles.navItem, navHeaderStyles.navItemSelected]} 
+                onPress={() => { /* navigation.navigate('Places') - Já está aqui, ou Post, o que for a rota */ }}
+            >
+                {/* Ícone de location sem contorno, pois o fundo já o destaca */}
+                <Ionicons name="location" size={18} color={COLORS.white} /> 
+                <Text style={[navHeaderStyles.navText, { color: COLORS.white }]}>Lugares</Text>
+            </TouchableOpacity>
+            
+            {/* PERFIL */}
+            <TouchableOpacity style={navHeaderStyles.navItem} onPress={() => navigation.navigate('Perfil')}>
+                {/* Note que estamos usando 'Perfil' com P maiúsculo como sua rota */}
+                <Ionicons name="person-outline" size={18} color={COLORS.mediumGrayText} />
+                <Text style={navHeaderStyles.navText}>Perfil</Text>
+            </TouchableOpacity>
+        </View>
+        
+        {/* SAIR / LOGOUT */}
+        <TouchableOpacity style={navHeaderStyles.navItem} onPress={handleLogout} disabled={loading}>
+            <Ionicons name="log-out-outline" size={18} color={COLORS.mediumGrayText} />
+            <Text style={navHeaderStyles.navText}>Sair</Text>
+        </TouchableOpacity>
+    </View>
+);
+
+// --- COMPONENTES AUXILIARES (inalterados) ---
+
+// Componente do Card de Relatório
 const ReportCard = ({ item, onLike, onComment }) => {
     const isCaution = item.type === 'cuidado' || item.type === 'incidente';
     const tagColor = item.type === 'incidente' ? COLORS.primaryRed : item.type === 'cuidado' ? COLORS.primaryRed : COLORS.safeColor;
@@ -124,37 +172,22 @@ const ReportCard = ({ item, onLike, onComment }) => {
     );
 };
 
-// Componente para a Barra de Navegação Superior (Header)
-const Header = () => (
-    <View style={headerStyles.headerContainer}>
-        {/* Ícone de alerta (círculo vermelho com ponto de exclamação) */}
-        <Ionicons name="alert-circle" size={24} color={COLORS.primaryRed} style={{ marginRight: 8 }} />
-        <View style={headerStyles.navLinksContainer}>
-            <Text style={headerStyles.navLink}>Página Inicial</Text>
-            {/* Botão ativo - Lugares */}
-            <View style={headerStyles.activeButton}>
-                <Text style={headerStyles.activeButtonText}>Lugares</Text>
-            </View>
-            <Text style={headerStyles.navLink}>Perfil</Text>
-            <Text style={headerStyles.navLink}>Sair</Text>
-        </View>
-        <View style={headerStyles.divider} />
-    </View>
-);
+// O componente Header original foi REMOVIDO/SUBSTITUÍDO
 
-// --- TELA PRINCIPAL: RelatorioDeLocaisScreen (Adaptada de PostagemScreen) ---
+// --- TELA PRINCIPAL: RelatorioDeLocaisScreen ---
 export default function RelatorioDeLocaisScreen({ navigation }) {
-    // ESTADOS ORIGINAIS RENOMEADOS/MANTIDOS:
+    // ... Estados (Inalterados)
     const [image, setImage] = useState(null);
     const [comentario, setComentario] = useState(''); // Era 'text'
     const [uploading, setUploading] = useState(false);
     const [reports, setReports] = useState([]); // Era 'posts'
     const [userName, setUserName] = useState('');
-
-    // NOVOS ESTADOS PARA O FORMULÁRIO DE RELATÓRIO:
     const [local, setLocal] = useState('');
     const [tipoRelato, setTipoRelato] = useState(REPORT_TYPES[0].value);
     const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(false); // Adicionado para o NavigationHeader
+
+    // ... useEffects e Funções de Lógica (Inalterados)
 
     useEffect(() => {
         requestPermissions();
@@ -276,6 +309,20 @@ export default function RelatorioDeLocaisScreen({ navigation }) {
         saveReports(updated);
     };
 
+    // Função de Logout (adaptada para a estrutura do NavigationHeader)
+    const handleLogout = async () => {
+        setLoading(true);
+        const { error } = await supabase.auth.signOut(); 
+
+        if (error) {
+            Alert.alert('Erro ao sair', error.message);
+        } else {
+            // Navega para a tela de Login e remove o histórico
+            navigation.replace('Login'); 
+        }
+        setLoading(false);
+    };
+
     // Filtra relatórios com base na pesquisa (adaptado)
     const filteredReports = reports.filter(report =>
         report.local.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -284,8 +331,12 @@ export default function RelatorioDeLocaisScreen({ navigation }) {
 
 return (
         <View style={styles.container}>
-            {/* 🔝 Header (mantido) */}
-            <Header />
+            {/* 🔝 SUBSTITUIÇÃO: Novo NavigationHeader */}
+            <NavigationHeader 
+                navigation={navigation} 
+                loading={loading} 
+                handleLogout={handleLogout} 
+            />
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {/* Título e Busca (mantidos) */}
@@ -302,7 +353,7 @@ return (
                     />
                 </View>
 
-                {/* 📝 Bloco “Novo relatório” */}
+                {/* 📝 Bloco “Novo relatório” (mantido) */}
                 <View style={styles.newReportContainer}>
                     <View style={styles.newReportTitleRow}>
                         <Ionicons name="add-circle" size={24} color={COLORS.primaryRed} style={{ marginRight: 8 }} />
@@ -316,9 +367,8 @@ return (
                         placeholderTextColor={COLORS.mediumGrayText}
                         value={local}
                         onChangeText={setLocal}
-                        // O segundo campo de input de teste ("gbr") foi removido para consistência.
                     />
-                     {/* Campo: Seu Nome (mantido) */}
+                    {/* Campo: Seu Nome (mantido) */}
                     <TextInput
                         style={styles.formInput}
                         placeholder="Seu nome (para identificação)"
@@ -329,26 +379,22 @@ return (
 
                     {/* CAMPO AJUSTADO: Tipo de relato* (Dropdown) */}
                     <View style={styles.formInputPickerContainer}>
-                        {/* Nota: A propriedade 'mode="dropdown"' no Android ajuda a centralizar e estilizar melhor.
-                          A cor 'COLORS.darkGrayText' é aplicada aqui para o texto selecionado.
-                        */}
                         <Picker
                             selectedValue={tipoRelato}
                             onValueChange={(itemValue) => setTipoRelato(itemValue)}
                             style={styles.pickerStyle}
-                            itemStyle={{ height: 120 }} // Ajuda na renderização em algumas plataformas
-                            mode={Platform.OS === 'android' ? "dropdown" : "dialog"} // Melhor UX em Android
+                            itemStyle={{ height: 120 }} 
+                            mode={Platform.OS === 'android' ? "dropdown" : "dialog"}
                         >
                             {REPORT_TYPES.map(item => (
                                 <Picker.Item 
                                     key={item.value} 
                                     label={item.label} 
                                     value={item.value} 
-                                    color={COLORS.darkGrayText} // Cor do texto
+                                    color={COLORS.darkGrayText}
                                 />
                             ))}
                         </Picker>
-                        {/* Ícone de seta para baixo é nativo no Picker, mas mantemos o estilo do container */}
                     </View>
 
                     {/* Campo: Comentário* */}
@@ -403,7 +449,7 @@ return (
                     )}
                     scrollEnabled={false} 
                     ListEmptyComponent={() => (
-                         <Text style={{textAlign: 'center', color: COLORS.mediumGrayText, padding: 20}}>Nenhum relatório encontrado.</Text>
+                           <Text style={{textAlign: 'center', color: COLORS.mediumGrayText, padding: 20}}>Nenhum relatório encontrado.</Text>
                     )}
                 />
             </ScrollView>
@@ -411,51 +457,41 @@ return (
     );
 }
 
-// --- ESTILOS (Mantidos e Ajustados para o Novo Componente) ---
-
-const headerStyles = StyleSheet.create({
-    headerContainer: {
+// --- ESTILOS ADICIONAIS PARA O NOVO HEADER ---
+const navHeaderStyles = StyleSheet.create({
+    navHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         backgroundColor: COLORS.white,
+        paddingTop: Platform.OS === 'android' ? 30 : 50, // Ajuste para status bar
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#EEE',
+    },
+    navLinksLeft: {
+        flexDirection: 'row',
+    },
+    navItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        paddingTop: Platform.OS === 'android' ? 30 : 50,
-        paddingBottom: 10,
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+        borderRadius: 4,
+        marginRight: 10,
     },
-    navLinksContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+    navText: {
+        fontSize: 12,
+        color: COLORS.mediumGrayText, // Usando mediumGrayText para links inativos
+        marginLeft: 3,
     },
-    navLink: {
-        color: COLORS.mediumGrayText,
-        fontSize: 14,
-        fontWeight: 'normal',
-        paddingHorizontal: 6,
-        paddingVertical: 4,
-    },
-    activeButton: {
-        backgroundColor: COLORS.primaryRed,
-        borderRadius: 9999,
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-    },
-    activeButtonText: {
-        color: COLORS.white,
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    divider: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 1,
-        backgroundColor: COLORS.headerBorder,
+    navItemSelected: {
+        backgroundColor: COLORS.primaryRed, // Destaque para Lugares
     },
 });
 
+// --- Estilos da Tela Principal (Mantidos, apenas a seção de headerStyles foi removida) ---
 const cardStyles = StyleSheet.create({
     cardContainer: {
         backgroundColor: COLORS.white,
@@ -608,11 +644,10 @@ const styles = StyleSheet.create({
         color: COLORS.darkGrayText,
         marginBottom: 12,
     },
-   formInputPickerContainer: {
+    formInputPickerContainer: {
         backgroundColor: COLORS.lightGray, // Fundo cinza claro
         borderRadius: 8, // Bordas arredondadas
         marginBottom: 12,
-        // Paddings para dar altura e alinhamento similar ao TextInput
         paddingHorizontal: 10, 
         paddingVertical: Platform.OS === 'ios' ? 4 : 0, // Ajuste sutil por plataforma
         justifyContent: 'center',
@@ -623,11 +658,6 @@ const styles = StyleSheet.create({
         height: '100%',
         width: '100%',
         color: COLORS.darkGrayText,
-    },
-    pickerIcon: {
-        position: 'absolute',
-        right: 12,
-        // Normalmente não visível em Android/iOS nativo
     },
     formCommentArea: {
         backgroundColor: COLORS.lightGray,

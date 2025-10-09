@@ -7,13 +7,23 @@ import {
   ScrollView,
   TextInput,
   StatusBar,
+  Alert,
 } from 'react-native';
-// Certifique-se de instalar: npm install react-native-vector-icons
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+// Ícones do Expo e MaterialCommunityIcons
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { supabase } from '../../supabaseClient'; 
 
 // --- Constante de Cor (para fácil manutenção) ---
-const PRIMARY_RED = '#f91b19'; // Novo Vermelho!
+const PRIMARY_RED = '#FF0000'; 
+const COLORS = {
+  primary: PRIMARY_RED,
+  background: '#F5F5F5',
+  textSecondary: '#555555',
+  white: '#FFFFFF',
+  black: '#000000',
+  inputBackground: '#EEEEEE',
+  verified: '#DC2626',
+};
 
 // --- Dados Mockados ---
 const emergencyContacts = [
@@ -22,16 +32,54 @@ const emergencyContacts = [
   { name: 'Cleiton de Jesus', role: '(Irmão)', phone: '+55 11 4002-8922', isActive: true },
 ];
 
-// --- Componentes Reutilizáveis ---
+// ----------------------------------------------------------------------
+// --- COMPONENTE: NavigationHeader (CORRIGIDO) ---
+// ----------------------------------------------------------------------
 
-// Componente para o rótulo de status ATIVO/INATIVO
+const NavigationHeader = ({ navigation, loading, handleLogout }) => (
+  <View style={styles.navHeader}>
+    <View style={styles.navLinksLeft}>
+      {/* PÁGINA INICIAL (Selecionado) */}
+      <TouchableOpacity 
+        style={[styles.navItem, styles.navItemSelected]} 
+        onPress={() => navigation.navigate('Home')} 
+      >
+        <Ionicons name="home" size={18} color={COLORS.white} />
+        <Text style={[styles.navText, { color: COLORS.white }]}>Página Inicial</Text>
+      </TouchableOpacity>
+      
+      {/* LUGARES (Rota Places) */}
+      {/* Assumindo que você tem a rota 'Places' */}
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Post')}>
+        <Ionicons name="location-outline" size={18} color={COLORS.textSecondary} />
+        <Text style={styles.navText}>Lugares</Text>
+      </TouchableOpacity>
+      
+      {/* PERFIL (CORREÇÃO: Mudei para 'Perfil' com P maiúsculo) */}
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Perfil')}>
+        <Ionicons name="person-outline" size={18} color={COLORS.textSecondary} />
+        <Text style={styles.navText}>Perfil</Text>
+      </TouchableOpacity>
+    </View>
+    
+    {/* SAIR / LOGOUT */}
+    <TouchableOpacity style={styles.navItem} onPress={handleLogout} disabled={loading}>
+      <Ionicons name="log-out-outline" size={18} color={COLORS.textSecondary} />
+      <Text style={styles.navText}>Sair</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// ----------------------------------------------------------------------
+// --- Componentes Reutilizáveis (Inalterados) ---
+// ----------------------------------------------------------------------
+
 const StatusBadge = ({ active, text = null }) => (
   <View style={[styles.badge, active ? styles.badgeActive : styles.badgeInactive]}>
     <Text style={styles.badgeText}>{text || (active ? 'ATIVO' : 'INATIVO')}</Text>
   </View>
 );
 
-// Componente para um bloco de seção (Monitoramento, Contatos, Localização)
 const SectionContainer = ({ title, iconName, children, iconLibrary = Feather }) => {
   const Icon = iconLibrary;
   return (
@@ -45,26 +93,39 @@ const SectionContainer = ({ title, iconName, children, iconLibrary = Feather }) 
   );
 };
 
-// Componente principal que representa a tela
-const SafetyScreen = () => {
-  // Estados para simular a funcionalidade
+// ----------------------------------------------------------------------
+// --- Componente principal que representa a tela (HomeScreen) ---
+// ----------------------------------------------------------------------
+
+export default function HomeScreen({ navigation }) {
   const [isVoiceMonitoringActive, setIsVoiceMonitoringActive] = useState(false);
   const [emergencyKeyword, setEmergencyKeyword] = useState('Socorro');
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
-  const [isLocationActive] = useState(true); // Simula que a permissão de localização está ativa
+  const [isLocationActive] = useState(true);
+  const [loading, setLoading] = useState(false); 
 
-  // Função para alternar o monitoramento de voz
   const toggleVoiceMonitoring = () => {
     setIsVoiceMonitoringActive(prev => !prev);
   };
 
-  // Funções para a palavra-chave
   const handleEditKeyword = () => {
     setIsEditingKeyword(true);
   };
   const handleSaveKeyword = () => {
-    // Aqui você adicionaria a lógica para salvar no backend/storage
     setIsEditingKeyword(false);
+  };
+
+  // --- Função de Logout com Supabase ---
+  const handleLogout = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signOut(); 
+
+    if (error) {
+      Alert.alert('Erro ao sair', error.message);
+    } else {
+      navigation.replace('Login'); 
+    }
+    setLoading(false);
   };
 
   // --- Renderização da Tela ---
@@ -73,26 +134,11 @@ const SafetyScreen = () => {
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Cabeçalho */}
-      <View style={styles.header}>
-        <Feather name="alert-triangle" size={24} color={PRIMARY_RED} />
-        <TouchableOpacity style={styles.headerButtonActive}>
-          <Feather name="home" size={20} color="#FFFFFF" />
-          <Text style={styles.headerButtonTextActive}>Página Inicial</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton}>
-          <Feather name="map-pin" size={20} color="#000" />
-          <Text style={styles.headerButtonText}>Lugares</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton}>
-          <Feather name="user" size={20} color="#000" />
-          <Text style={styles.headerButtonText}>Perfil</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.headerButton}>
-          <Feather name="log-out" size={20} color="#000" />
-          <Text style={styles.headerButtonText}>Sair</Text>
-        </TouchableOpacity>
-      </View>
+      <NavigationHeader 
+        navigation={navigation} 
+        loading={loading} 
+        handleLogout={handleLogout} 
+      />
 
       <Text style={styles.logo}>
         <Text style={{ fontWeight: 'bold' }}>Alerta</Text>
@@ -165,7 +211,6 @@ const SafetyScreen = () => {
             </View>
           ))}
         </SectionContainer>
-
         {/* --- 3. Localização --- */}
         <SectionContainer
           title="Localização"
@@ -187,51 +232,51 @@ const SafetyScreen = () => {
   );
 };
 
-// --- Estilos ---
+// --- Estilos (Inalterados) ---
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background, 
   },
   container: {
     paddingHorizontal: 15,
     paddingBottom: 20,
   },
-
-  // Estilos do Cabeçalho
-  header: {
+  navHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingTop: 10,
-    paddingBottom: 10,
+    backgroundColor: COLORS.white,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
   },
-  headerButton: {
+  navLinksLeft: {
+    flexDirection: 'row',
+  },
+  navItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  headerButtonActive: {
-    ...this.headerButton,
-    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    paddingHorizontal: 8,
     paddingVertical: 5,
-    borderRadius: 5,
+    borderRadius: 4,
+    marginRight: 10,
   },
-  headerButtonText: {
-    fontSize: 10,
-    color: '#000',
+  navText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginLeft: 3,
   },
-  headerButtonTextActive: {
-    ...this.headerButtonText,
-    color: '#FFFFFF',
+  navItemSelected: {
+    backgroundColor: COLORS.primary, 
   },
   logo: {
     fontSize: 24,
     textAlign: 'center',
     marginTop: 15,
     marginBottom: 5,
+    color: COLORS.black,
   },
   subtitle: {
     textAlign: 'center',
@@ -239,15 +284,13 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 20,
   },
-
-  // Estilos das Seções (Blocos) - Sem o traço vermelho lateral
   sectionContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     borderRadius: 8,
     padding: 15,
     marginBottom: 20,
-    elevation: 3, // Sombra para Android
-    shadowColor: '#000', // Sombra para iOS
+    elevation: 3, 
+    shadowColor: '#000', 
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
@@ -265,20 +308,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: PRIMARY_RED, // COR ATUALIZADA
+    color: PRIMARY_RED, 
   },
   sectionContent: {
     paddingTop: 5,
   },
-
-  // Estilos do Badge de Status (ATIVO/INATIVO)
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   badgeActive: {
-    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    backgroundColor: PRIMARY_RED, 
   },
   badgeInactive: {
     backgroundColor: '#999',
@@ -288,8 +329,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-
-  // Estilos do Monitoramento de Voz
   voiceMonitorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -299,13 +338,13 @@ const styles = StyleSheet.create({
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    backgroundColor: PRIMARY_RED, 
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 5,
   },
   stopButton: {
-    backgroundColor: '#555', // Cor diferente para o estado "Parar" (se ativado)
+    backgroundColor: '#555', 
   },
   startButtonText: {
     color: '#FFFFFF',
@@ -331,11 +370,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: PRIMARY_RED, // COR ATUALIZADA
+    borderColor: PRIMARY_RED, 
     color: '#000',
   },
   editButton: {
-    backgroundColor: PRIMARY_RED, // COR ATUALIZADA
+    backgroundColor: PRIMARY_RED, 
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
@@ -344,8 +383,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
-
-  // Estilos dos Contatos de Emergência
   contactRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -368,8 +405,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-
-  // Estilos da Localização
   locationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -387,5 +422,3 @@ const styles = StyleSheet.create({
     width: 200, 
   },
 });
-
-export default SafetyScreen;
