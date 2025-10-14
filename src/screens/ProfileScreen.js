@@ -76,27 +76,31 @@ const NavigationHeader = ({ navigation, loading, handleLogout }) => (
         <Ionicons name="home-outline" size={18} color={COLORS.textSecondary} />
         <Text style={styles.navText}>Página Inicial</Text>
       </TouchableOpacity>
-      
-      {/* LUGARES (Mock) */}
-      <TouchableOpacity style={styles.navItem}>
+
+      {/* LUGARES */}
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Post')} // <- Adicionado
+      >
         <Ionicons name="location-outline" size={18} color={COLORS.textSecondary} />
         <Text style={styles.navText}>Lugares</Text>
       </TouchableOpacity>
-      
+
+
       {/* PERFIL (Selecionado) */}
       <TouchableOpacity style={[styles.navItem, styles.navItemSelected]}>
         <Ionicons name="person" size={18} color={COLORS.white} />
         <Text style={[styles.navText, { color: COLORS.white }]}>Perfil</Text>
       </TouchableOpacity>
     </View>
-    
+
     {/* SAIR / LOGOUT */}
     <TouchableOpacity style={styles.navItem} onPress={handleLogout} disabled={loading}>
-        {loading ? (
-            <ActivityIndicator size="small" color={COLORS.textSecondary} style={{ marginRight: 4 }}/>
-        ) : (
-            <Ionicons name="log-out-outline" size={18} color={COLORS.textSecondary} />
-        )}
+      {loading ? (
+        <ActivityIndicator size="small" color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+      ) : (
+        <Ionicons name="log-out-outline" size={18} color={COLORS.textSecondary} />
+      )}
       <Text style={styles.navText}>Sair</Text>
     </TouchableOpacity>
   </View>
@@ -111,11 +115,13 @@ export default function ProfileScreen({ navigation }) {
   }
   const handleExclude = () => {
     Alert.alert('Confirmação', 'Tem certeza que deseja excluir sua conta permanentemente?', [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => { 
-            // Lógica de exclusão da conta aqui
-            alert('Conta excluída (lógica de exclusão + logout)')
-        }}
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir', style: 'destructive', onPress: () => {
+          // Lógica de exclusão da conta aqui
+          alert('Conta excluída (lógica de exclusão + logout)')
+        }
+      }
     ])
   }
 
@@ -128,19 +134,19 @@ export default function ProfileScreen({ navigation }) {
       Alert.alert('Erro ao sair', error.message)
     } else {
       // Navega para a tela de Login e remove o histórico
-      navigation.replace('Login') 
+      navigation.replace('Login')
     }
     setLoading(false)
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      
+
       {/* Cabeçalho de Navegação com Funcionalidade */}
-      <NavigationHeader 
-          navigation={navigation} 
-          loading={loading} 
-          handleLogout={handleLogout} 
+      <NavigationHeader
+        navigation={navigation}
+        loading={loading}
+        handleLogout={handleLogout}
       />
 
       <ScrollView
@@ -211,7 +217,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.excludeButtonText}>Excluir conta permanentemente</Text>
           </TouchableOpacity>
         </View>
-        
+
         {/* Espaçamento extra no final */}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     alignItems: 'center', // Centraliza os cards e botões
   },
-  
+
   // --- Nav Header Styles ---
   navHeader: {
     flexDirection: 'row',
