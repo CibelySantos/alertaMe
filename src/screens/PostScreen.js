@@ -459,36 +459,49 @@ return (
 
 // --- ESTILOS ADICIONAIS PARA O NOVO HEADER ---
 const navHeaderStyles = StyleSheet.create({
-    navHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
-        paddingTop: Platform.OS === 'android' ? 30 : 50, // Ajuste para status bar
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
-    },
-    navLinksLeft: {
-        flexDirection: 'row',
-    },
-    navItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 5,
-        borderRadius: 4,
-        marginRight: 10,
-    },
-    navText: {
-        fontSize: 12,
-        color: COLORS.mediumGrayText, // Usando mediumGrayText para links inativos
-        marginLeft: 3,
-    },
-    navItemSelected: {
-        backgroundColor: COLORS.primaryRed, // Destaque para Lugares
-    },
+    safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+    alignItems: 'center', // Centraliza os cards e botões
+  },
+
+  // --- Nav Header Styles ---
+  navHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  navLinksLeft: {
+    flexDirection: 'row',
+  },
+  navItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  navText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginLeft: 3,
+  },
+  navItemSelected: {
+    backgroundColor: COLORS.primary,
+  },
 });
 
 // --- Estilos da Tela Principal (Mantidos, apenas a seção de headerStyles foi removida) ---
