@@ -9,9 +9,7 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
-  // 💡 Removemos ImageBackground
   Image,
-  // 💡 Removemos ScrollView
 } from 'react-native'
 import { supabase } from '../../supabaseClient'
 
