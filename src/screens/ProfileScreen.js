@@ -32,7 +32,7 @@ const MOCK_USER = {
 }
 
 const MOCK_CONTACTS = [
-  { id: 1, name: 'Tereza de Jesus', relation: 'Mãe', phone: '+55 11 4002-8922' },
+  { id: 1, name: 'Luiz', relation: 'Teste', phone: '+55 12 99621-6306' },
   {
     id: 2,
     name: 'Mariana Santos',
