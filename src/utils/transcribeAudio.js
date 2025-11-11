@@ -1,37 +1,43 @@
 import * as FileSystem from "expo-file-system";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../supabaseClient";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// ⚠️ Substitua pela sua chave
+const GEMINI_API_KEY = "AIzaSyBhF4FHY97Lhd6izbSYOWzRyW97qGYDjzs";
+
+// 🚀 Use um modelo disponível (suporta áudio)
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function transcribeAudio(audioUri) {
-    try {
-        console.log("🎧 Enviando áudio ao Supabase...");
+  try {
+    console.log("🎧 Lendo arquivo de áudio:", audioUri);
 
-        console.log("🔗 URL Supabase:", SUPABASE_URL);
-        console.log("🔑 Chave:", SUPABASE_ANON_KEY ? "OK" : "Faltando");
+    // Converte o áudio para Base64
+    const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
 
+    console.log("📡 Enviando áudio para Gemini...");
 
-        const functionUrl = `${SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co")}/transcribe-audio`;
+    // Envia o áudio ao Gemini
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: "audio/m4a",
+          data: base64Audio,
+        },
+      },
+      {
+        text: "Transcreva o áudio falado para texto em português, sem comentários adicionais.",
+      },
+    ]);
 
-        // Usa o uploadAsync, que é compatível com o ambiente do Expo Go
-        const response = await FileSystem.uploadAsync(functionUrl, audioUri, {
-            httpMethod: "POST",
-            headers: {
-                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-                "Content-Type": "audio/m4a", // tipo do arquivo
-            },
-            fieldName: "file",
-        });
+    const text = result.response.text();
 
-        if (response.status !== 200) {
-            console.error("❌ Erro na resposta do Supabase:", response.body);
-            throw new Error(`Erro ${response.status}: ${response.body}`);
-        }
-
-        const data = JSON.parse(response.body);
-        console.log("✅ Transcrição concluída:", data);
-
-        return data.text || "Sem transcrição recebida";
-    } catch (error) {
-        console.error("❌ Erro ao transcrever via Supabase:", error);
-        return null;
-    }
+    console.log("✅ Transcrição Gemini:", text);
+    return text;
+  } catch (error) {
+    console.error("❌ Erro ao transcrever com Gemini:", error);
+    return null;
+  }
 }
