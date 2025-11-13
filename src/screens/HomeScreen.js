@@ -13,6 +13,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { supabase } from "../../supabaseClient";
 import * as Location from "expo-location";
 import * as SMS from "expo-sms";
+import * as Linking from "expo-linking";
 import { Audio } from "expo-av";
 import { transcribeAudio } from "../utils/transcribeAudio";
 
@@ -27,7 +28,7 @@ const COLORS = {
   verified: "#DC2626",
 };
 
-const emergencyContacts = [
+const initialContacts = [
   { name: "Luiz", role: "(Teste)", phone: "+5512996216306", isActive: true },
   {
     name: "Mariana Santos",
@@ -43,7 +44,6 @@ const emergencyContacts = [
   },
 ];
 
-/* 🧭 Barra de navegação */
 const NavigationHeader = ({ navigation, loading, handleLogout }) => (
   <View style={styles.navHeader}>
     <View style={styles.navLinksLeft}>
@@ -116,14 +116,14 @@ const SectionContainer = ({ title, iconName, children, iconLibrary = Feather }) 
 export default function HomeScreen({ navigation }) {
   const [emergencyKeyword, setEmergencyKeyword] = useState("Socorro");
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
+  const [contacts, setContacts] = useState(initialContacts);
+  const [editingContactIndex, setEditingContactIndex] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
 
   const recordingRef = useRef(null);
-  const lastTriggerAt = useRef(0);
 
-  /* 🚨 Envio manual de alerta */
   const handleEmergencyTrigger = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -143,7 +143,7 @@ export default function HomeScreen({ navigation }) {
       const locationLink = `https://www.google.com/maps?q=${lat},${lon}`;
       const message = `🚨 Emergência detectada! Preciso de ajuda!\n\nMinha localização: ${locationLink}`;
 
-      const activeContacts = emergencyContacts.filter((c) => c.isActive);
+      const activeContacts = contacts.filter((c) => c.isActive);
       const numbers = activeContacts.map((c) => c.phone);
 
       const isAvailable = await SMS.isAvailableAsync();
@@ -160,10 +160,19 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  /* 🎙️ Iniciar gravação */
+  const handleCallPolice = async () => {
+    const policeNumber = "190";
+    const url = `tel:${policeNumber}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert("Erro", "Não foi possível abrir o discador neste dispositivo.");
+    }
+  };
+
   const startRecording = async () => {
     try {
-      console.log("🎙️ Iniciando gravação...");
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -178,15 +187,7 @@ export default function HomeScreen({ navigation }) {
       recordingRef.current = recording;
       setIsRecording(true);
 
-      console.log("🌐 Testando conexão com Supabase...");
-      const ping = await fetch(
-        "https://grqgsehkgnornqibknbu.supabase.co/rest/v1/"
-      );
-      console.log("🔁 Status:", ping.status);
-
-      // ⏱️ Parar automaticamente após 3,5 segundos
       setTimeout(async () => {
-        console.log("⏱️ Tempo limite atingido — parando gravação...");
         if (recordingRef.current) {
           await stopRecording(true);
         }
@@ -196,45 +197,24 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  /* 🛑 Parar gravação e transcrever */
   const stopRecording = async (auto = false) => {
-    console.log(auto ? "🛑 Parando automaticamente..." : "🛑 Parando gravação...");
     setIsRecording(false);
-
     const activeRecording = recordingRef.current;
-    if (!activeRecording) {
-      console.warn("⚠️ Nenhuma gravação ativa encontrada.");
-      return;
-    }
+    if (!activeRecording) return;
 
     try {
       await activeRecording.stopAndUnloadAsync();
       const uri = activeRecording.getURI();
-      console.log("🎧 Áudio salvo em:", uri);
-
       recordingRef.current = null;
-
-      // 🧠 Transcrever via Gemini
       const text = await transcribeAudio(uri);
-
-      if (text) {
-        console.log("✅ Texto reconhecido:", text);
-        Alert.alert("🗣️ Transcrição concluída", text);
-
-        if (text.toLowerCase().includes(emergencyKeyword.toLowerCase())) {
-          Alert.alert("🚨 Palavra-chave detectada!", "Enviando alerta de emergência...");
-          await handleEmergencyTrigger();
-        }
-      } else {
-        Alert.alert("Erro", "Não foi possível transcrever o áudio.");
+      if (text && text.toLowerCase().includes(emergencyKeyword.toLowerCase())) {
+        await handleEmergencyTrigger();
       }
     } catch (err) {
-      console.error("❌ Erro ao parar ou transcrever gravação:", err);
-      Alert.alert("Erro", "Ocorreu um problema ao processar o áudio.");
+      console.error("Erro ao processar áudio:", err);
     }
   };
 
-  /* 🚪 Logout */
   const handleLogout = async () => {
     setLoading(true);
     const { error } = await supabase.auth.signOut();
@@ -243,14 +223,16 @@ export default function HomeScreen({ navigation }) {
     setLoading(false);
   };
 
+  const updateContact = (index, field, value) => {
+    const updated = [...contacts];
+    updated[index][field] = value;
+    setContacts(updated);
+  };
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <NavigationHeader
-        navigation={navigation}
-        loading={loading}
-        handleLogout={handleLogout}
-      />
+      <NavigationHeader navigation={navigation} loading={loading} handleLogout={handleLogout} />
 
       <Text style={styles.logo}>
         <Text style={{ fontWeight: "bold" }}>Alerta</Text>
@@ -259,33 +241,26 @@ export default function HomeScreen({ navigation }) {
       <Text style={styles.subtitle}>Sua segurança em primeiro lugar.</Text>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* 🚨 Botões principais */}
-        <SectionContainer
-          title="Alerta de Emergência"
-          iconName="alert-octagon"
-          iconLibrary={Feather}
-        >
+        <SectionContainer title="Alerta de Emergência" iconName="alert-octagon" iconLibrary={Feather}>
           <Text style={{ color: "#555", marginBottom: 15 }}>
-            Pressione o botão abaixo para enviar sua localização via SMS aos
-            contatos de segurança.
+            Pressione o botão abaixo para enviar sua localização via SMS aos contatos de segurança.
           </Text>
 
-          <TouchableOpacity
-            style={styles.alertButton}
-            onPress={handleEmergencyTrigger}
-          >
+          <TouchableOpacity style={styles.alertButton} onPress={handleEmergencyTrigger}>
             <MaterialCommunityIcons name="alert" size={22} color="#FFF" />
-            <Text style={styles.alertButtonText}>
-              🚨 Enviar alerta de emergência
-            </Text>
+            <Text style={styles.alertButtonText}>Enviar alerta de emergência</Text>
           </TouchableOpacity>
 
-          {/* 🎙️ Gravação e comando de voz */}
           <TouchableOpacity
-            style={[
-              styles.alertButton,
-              { marginTop: 10, backgroundColor: "#444" },
-            ]}
+            style={[styles.alertButton, { marginTop: 10, backgroundColor: "#1E90FF" }]}
+            onPress={handleCallPolice}
+          >
+            <Ionicons name="call" size={22} color="#FFF" />
+            <Text style={styles.alertButtonText}>Ligar para a Polícia (190)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.alertButton, { marginTop: 10, backgroundColor: "#444" }]}
             onPress={isRecording ? stopRecording : startRecording}
           >
             <MaterialCommunityIcons
@@ -294,57 +269,74 @@ export default function HomeScreen({ navigation }) {
               color="#FFF"
             />
             <Text style={styles.alertButtonText}>
-              {isRecording
-                ? "Parar e analisar comando"
-                : "🎙️ Ativar reconhecimento de voz"}
+              {isRecording ? "Parar e analisar comando" : "Ativar reconhecimento de voz"}
             </Text>
           </TouchableOpacity>
         </SectionContainer>
 
-        {/* ⚙️ Palavra-chave */}
-        <SectionContainer
-          title="Configurações da palavra-chave"
-          iconName="key"
-          iconLibrary={Feather}
-        >
-          <Text style={styles.keywordLabel}>Palavra-chave atual:</Text>
-          {isEditingKeyword ? (
-            <TextInput
-              style={styles.keywordInput}
-              value={emergencyKeyword}
-              onChangeText={setEmergencyKeyword}
-              onSubmitEditing={() => setIsEditingKeyword(false)}
-            />
-          ) : (
-            <View style={styles.keywordDisplay}>
-              <Text>{emergencyKeyword}</Text>
-            </View>
-          )}
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => setIsEditingKeyword(!isEditingKeyword)}
-          >
-            <Text style={styles.editButtonText}>
-              {isEditingKeyword ? "Salvar" : "Editar palavra-chave"}
-            </Text>
-          </TouchableOpacity>
+        <SectionContainer title="Palavra-chave" iconName="key" iconLibrary={Feather}>
+          <View style={styles.keywordRow}>
+            {isEditingKeyword ? (
+              <TextInput
+                style={styles.keywordInput}
+                value={emergencyKeyword}
+                onChangeText={setEmergencyKeyword}
+                onSubmitEditing={() => setIsEditingKeyword(false)}
+              />
+            ) : (
+              <Text style={styles.keywordDisplay}>{emergencyKeyword}</Text>
+            )}
+
+            <TouchableOpacity onPress={() => setIsEditingKeyword(!isEditingKeyword)}>
+              <Feather name={isEditingKeyword ? "check" : "edit-2"} size={20} color={PRIMARY_RED} />
+            </TouchableOpacity>
+          </View>
         </SectionContainer>
 
-        {/* 👥 Contatos */}
-        <SectionContainer
-          title="Contatos de Emergência"
-          iconName="account-group"
-          iconLibrary={MaterialCommunityIcons}
-        >
-          {emergencyContacts.map((c, i) => (
+        <SectionContainer title="Contatos de Emergência" iconName="account-group" iconLibrary={MaterialCommunityIcons}>
+          {contacts.map((c, i) => (
             <View key={i} style={styles.contactRow}>
-              <View>
-                <Text style={styles.contactName}>
-                  {c.name} <Text style={styles.contactRole}>{c.role}</Text>
-                </Text>
-                <Text style={styles.contactPhone}>{c.phone}</Text>
-              </View>
-              <StatusBadge active={c.isActive} />
+              {editingContactIndex === i ? (
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    style={styles.contactInput}
+                    value={c.name}
+                    onChangeText={(v) => updateContact(i, "name", v)}
+                    placeholder="Nome"
+                  />
+                  <TextInput
+                    style={styles.contactInput}
+                    value={c.role}
+                    onChangeText={(v) => updateContact(i, "role", v)}
+                    placeholder="Relação"
+                  />
+                  <TextInput
+                    style={styles.contactInput}
+                    value={c.phone}
+                    onChangeText={(v) => updateContact(i, "phone", v)}
+                    placeholder="Telefone"
+                  />
+                </View>
+              ) : (
+                <View>
+                  <Text style={styles.contactName}>
+                    {c.name} <Text style={styles.contactRole}>{c.role}</Text>
+                  </Text>
+                  <Text style={styles.contactPhone}>{c.phone}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                onPress={() =>
+                  setEditingContactIndex(editingContactIndex === i ? null : i)
+                }
+              >
+                <Feather
+                  name={editingContactIndex === i ? "check" : "edit-2"}
+                  size={20}
+                  color={PRIMARY_RED}
+                />
+              </TouchableOpacity>
             </View>
           ))}
         </SectionContainer>
@@ -416,31 +408,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   alertButtonText: { color: "#FFF", fontSize: 16, fontWeight: "bold", marginLeft: 8 },
-  keywordLabel: { fontSize: 12, color: "#666", marginBottom: 5 },
-  keywordDisplay: {
-    backgroundColor: "#F0F0F0",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#CCC",
+  keywordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
+  keywordDisplay: { fontSize: 16, color: "#333" },
   keywordInput: {
     backgroundColor: "#F0F0F0",
     padding: 10,
     borderRadius: 5,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: PRIMARY_RED,
-    color: "#000",
+    flex: 1,
+    marginRight: 10,
   },
-  editButton: {
-    backgroundColor: PRIMARY_RED,
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  editButtonText: { color: "#FFFFFF", fontWeight: "bold" },
   contactRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -452,4 +432,12 @@ const styles = StyleSheet.create({
   contactName: { fontSize: 16, fontWeight: "bold", color: "#333" },
   contactRole: { fontSize: 14, fontWeight: "normal", color: "#666" },
   contactPhone: { fontSize: 14, color: "#666" },
+  contactInput: {
+    backgroundColor: "#F0F0F0",
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#DDD",
+    padding: 6,
+    marginBottom: 5,
+  },
 });
