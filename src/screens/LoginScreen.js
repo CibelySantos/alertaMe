@@ -70,23 +70,26 @@ export default function LoginScreen({ navigation }) {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
+            <Text style={styles.welcomeText}>Seja bem-vindo!</Text>
             <Text style={styles.subtitle}>Entre na sua conta</Text>
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.label}>Email:</Text>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Digite seu email"
               placeholderTextColor="#9CA3AF"
               onChangeText={setEmail}
               value={email}
               keyboardType="email-address"
               autoCapitalize="none"
+              
             />
+            <Text style={styles.label}>Senha:</Text>
             <TextInput
               style={styles.input}
-              placeholder="Senha"
+              placeholder="Insira sua senha"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               onChangeText={setPassword}
@@ -124,7 +127,13 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: 'hidden', // Tenta impedir qualquer rolagem nativa
   },
-  
+  label: {
+  color: '#000000ff', // ou a cor que preferir
+  fontSize: 16,
+  marginBottom: 4,
+  marginTop: 12, // adiciona um pequeno espaçamento acima
+},
+
   // 💡 2. Imagem de fundo FIXA
   fixedBackground: {
     ...StyleSheet.absoluteFillObject, // Atalho para {position: 'absolute', top: 0, bottom: 0, left: 0, right: 0}

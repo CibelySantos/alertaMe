@@ -402,7 +402,7 @@ export default function RelatorioDeLocaisScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.reportsSectionTitle}>Seus relatórios</Text>
+        <Text style={styles.reportsSectionTitle}>Relatórios</Text>
         <FlatList
           data={filteredReports}
           keyExtractor={(item) => item.id}
