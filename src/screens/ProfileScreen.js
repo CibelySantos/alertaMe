@@ -246,36 +246,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.infoFieldContainer}><Text style={styles.infoFieldTitle}>Endereço</Text><View style={styles.infoFieldValueBox}><Text style={styles.infoFieldValueText}>{profile?.cidade || '-'}</Text></View></View>
         </View>
 
-        <View style={[styles.card, styles.sectionMargin]}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionTitle}><MaterialCommunityIcons name="shield-account" size={18} color={COLORS.primary} /> Contatos de Emergência</Text>
-            <TouchableOpacity onPress={() => setAddContactModalVisible(true)}><Text style={{ color: COLORS.primary, fontWeight: '700' }}>+ adicionar</Text></TouchableOpacity>
-          </View>
-
-          {contacts.length === 0 ? (
-            <Text style={{ color: COLORS.textSecondary, marginTop: 8 }}>Nenhum contato adicionado.</Text>
-          ) : (
-            contacts.map((c) => (
-              <View key={c.id} style={styles.contactCard}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
-                    <Text style={styles.contactName}>{c.name} {c.relation ? `(${c.relation})` : ''}</Text>
-                    <Text style={styles.contactPhone}>{c.phone}</Text>
-                    {c.email ? <Text style={{ color: COLORS.textSecondary }}>{c.email}</Text> : null}
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
-                    <TouchableOpacity onPress={() => navigation.navigate('EditarContato', { contact: c })}>
-                      <Text style={{ color: COLORS.primary }}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteContact(c.id)}>
-                      <Text style={{ color: '#cc0000' }}>Remover</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
+        
 
         <View style={{ height: 40 }} />
       </ScrollView>
