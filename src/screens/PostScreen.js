@@ -31,13 +31,11 @@ const AsyncStorage = {
       return JSON.stringify([
         {
           id: 'mock1',
-          userName: 'Usuário Teste',
-          local: 'Rua das Flores, 144',
+          userName: 'Gabriel',
+          local: 'Shibata',
           type: 'incidente',
-          text: 'Simulação de relatório antigo.',
+          text: 'Me roubaram',
           imageUrl: null,
-          likes: 5,
-          comments: ['ok', 'certo'],
         },
       ]);
     return null;
