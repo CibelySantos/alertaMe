@@ -1,24 +1,24 @@
-# 📱 AlertaMe
+#  AlertaMe
 
 Aplicativo mobile de segurança pessoal e comunitária, desenvolvido em **React Native com Expo**, permitindo que usuários acionem alertas de emergência, enviem sua localização em tempo real para contatos de confiança e registrem ocorrências de segurança em um mapa colaborativo.
 
 ---
 
-## 🚨 Funcionalidades Principais
+##  Funcionalidades Principais
 
-### 👤 Autenticação
+###  Autenticação
 - Cadastro e login de usuários
 - Autenticação por e-mail e senha
 - Dados armazenados no Supabase
 
-### 🆘 Página Inicial
+###  Página Inicial
 - Enviar alerta de emergência rapidamente
 - Ligação direta para **190**
 - Acionamento por **reconhecimento de voz**
 - Cadastro de **palavra-chave de segurança**
 - Gerenciamento de **contatos de emergência**
 
-### 📍 Relatórios de Locais
+###  Relatórios de Locais
 - Usuários podem registrar ocorrências como:
   - Assaltos
   - Locais perigosos
@@ -26,7 +26,7 @@ Aplicativo mobile de segurança pessoal e comunitária, desenvolvido em **React 
 - Lista de relatos anteriores
 - Base para mapa colaborativo da comunidade
 
-### 👤 Perfil do Usuário
+###  Perfil do Usuário
 - Exibição das informações pessoais
 - Possibilidade de editar:
   - Nome
@@ -35,7 +35,7 @@ Aplicativo mobile de segurança pessoal e comunitária, desenvolvido em **React 
 
 ---
 
-## 🧠 Tecnologias Utilizadas
+##  Tecnologias Utilizadas
 
 ### Frontend
 - React Native
@@ -59,7 +59,7 @@ Aplicativo mobile de segurança pessoal e comunitária, desenvolvido em **React 
 
 ---
 
-## ⚙️ Requisitos para Rodar
+##  Requisitos para Rodar
 
 ### Necessário ter instalado:
 - Node.js 18+
@@ -84,14 +84,14 @@ npm run ios       // rodar no iOS (somente macOS)
 
 ---
 
-## 🔒 Segurança
+##  Segurança
 - Dados trafegados via HTTPS
 - Informações sensíveis criptografadas
 - Senhas nunca ficam em texto plano
 
 ---
 
-## 📅 Roadmap
+##  Roadmap
 - Envio de SMS automático em caso de alerta
 - Mapa colaborativo com marcadores
 - Notificações push para usuários próximos
@@ -100,7 +100,7 @@ npm run ios       // rodar no iOS (somente macOS)
 
 ---
 
-## 🤝 Equipe
+##  Equipe
 - Cibely Cristiny
 - Gabriel Moreira
 - Julia Fortunato
